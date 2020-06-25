@@ -211,5 +211,14 @@ while True:
     ### END PHASE
     if nextphase == _END:
         print_phase(nextphase)
+        nb_discard = board.end_turn(current_player)
+        while nb_discard != 0:
+            board.display_hand(current_player)
+            pick = input("you have "+str(nb_discard)+" too many cards. Discard these to end turn.\n")
+            if not pick.isnumeric():
+                print("enter a number")
+                continue
+            if board.discard(current_player,int(pick)-1):
+                nb_discard-=1
         current_player = not current_player
         nextphase = _DRAW

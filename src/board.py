@@ -24,6 +24,7 @@ class Board:
     def combat_destruct(self, player, id):
         card = (self._m_zones[player].pop(id))._card
         self._m_zones[player].insert(id,None)
+        self._n_monsters[player] -= 1
         self._cemetaries[player].append(card)
 
     def draw_card(self, player, n):
@@ -42,7 +43,7 @@ class Board:
 
     def main_actions(self, player, n):
         actions = ["give up","battle phase","end phase", "display", "view"]
-        if self._n_monsters !=3 and n != 0 and len(self._hands[player]) > 0 :
+        if self._n_monsters[player] !=3 and n != 0 and len(self._hands[player]) > 0 :
             actions.append("normal summon")
             actions.append("set face-down")
         for monster in self._m_zones[player]:
@@ -59,6 +60,7 @@ class Board:
                     self._m_zones[player].pop(i)
                     self._m_zones[player].insert(i,mon)
                     self._players[player].normal_summons-=1
+                    self._n_monsters[player] += 1 
                     break
             return 1
         print("invalid choice, number not in your hand")
@@ -72,6 +74,7 @@ class Board:
                     self._m_zones[player].pop(i)
                     self._m_zones[player].insert(i,mon)
                     self._players[player].normal_summons-=1
+                    self._n_monsters[player] += 1
                     break
             return 1
         print("invalid choice, number not in your hand")
@@ -114,6 +117,8 @@ class Board:
         return self._m_zones[not player][id_t] is not None
 
     def init_damage_step(self,player,id_t):
+        if id_t == 3:
+            return 0
         target = self._m_zones[not player][id_t]
         if target._position == 2:
             target._summon = 1
@@ -157,6 +162,19 @@ class Board:
             if monster is not None:
                 monster._nb_atk = 0
 
+    def end_turn(self,player):
+        if len(self._hands[player]) > 6:
+            return len(self._hands[player]) - 6
+        return 0
+
+    def discard(self,player,id):
+        if id in range(len(self._hands[player])):
+            card = self._hands[player].pop(id)
+            self._cemetaries[player].append(card)
+            return 1
+        print("invalid choice, number not in your hand")
+        return 0 
+
     def display_hand(self, player):
         i=0
         for card in self._hands[player]:
@@ -174,7 +192,7 @@ class Board:
                 monster.print_details()
 
     def display_cemetary(self,player,which):
-        pick = player and which
+        pick = (player and which) or (not player and not which)
         i = 0
         for card in self._cemetaries[pick]:
             i+=1
@@ -183,7 +201,7 @@ class Board:
         return i
 
     def display_field(self,player,which):
-        pick = player and which
+        pick = player and which or (not player and not which)
         print("spell and trap zone:\n1: Empty\n2:Empty\n3:Empty")
         print("monster zone:")
         i=0
@@ -221,13 +239,14 @@ class Board:
     def print_cemline(self, player):
         names = []
         for i in range(len(self._m_zones[player])):
-            if self._m_zones[player][i] is None:
+            monster = self._m_zones[player][i]
+            if monster is None:
                 names.append("x")
             else:
-                if self._m_zones[player][i]._position == 2:
+                if monster._position == 2:
                     names.append("[face-down monster]")
                 else:
-                    names.append(self._m_zones[player][i]._card._name)
+                    names.append(monster._card._name+"("+monster.get_position(monster._position)+")")
         print("cemetary:"+str(len(self._cemetaries[0]))+ "               "+names[0]+"        "+names[1]+"        "+names[2])
 
     def display(self, player):
