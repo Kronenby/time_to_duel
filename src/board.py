@@ -44,6 +44,7 @@ class Board:
         actions = ["give up","battle phase","end phase", "display", "view"]
         if self._n_monsters !=3 and n != 0 and len(self._hands[player]) > 0 :
             actions.append("normal summon")
+            actions.append("set face-down")
         for monster in self._m_zones[player]:
             if monster is not None and monster._switchable:
                 actions.append("change monster position")
@@ -63,10 +64,25 @@ class Board:
         print("invalid choice, number not in your hand")
         return 0
 
+    def setdown(self,player,id):
+        if id in range(len(self._hands[player])):
+            mon = monster.Monster(self._hands[player].pop(id),0,2)
+            for i in range(len(self._m_zones[player])):
+                if self._m_zones[player][i] is None:
+                    self._m_zones[player].pop(i)
+                    self._m_zones[player].insert(i,mon)
+                    self._players[player].normal_summons-=1
+                    break
+            return 1
+        print("invalid choice, number not in your hand")
+        return 0
+
     def switch(self, player, id):
         if id in range(len(self._m_zones[player])):
             monster = self._m_zones[player][id]
             if monster is not None and monster._switchable:
+                if monster._position == 2:
+                    monster._summon = 1
                 monster._position = not monster._position
                 monster._switchable = False
                 return 0
@@ -97,13 +113,22 @@ class Board:
             return cpt == 0
         return self._m_zones[not player][id_t] is not None
 
+    def init_damage_step(self,player,id_t):
+        target = self._m_zones[not player][id_t]
+        if target._position == 2:
+            target._summon = 1
+            target._position = 1
+            return 1
+        return 0
+
+
     def damage_calc(self, player, id_a, id_t):
         attacker = self._m_zones[player][id_a]
         atk = attacker.get_stat(attacker._position)
         res = 0
+        attacker._nb_atk-=1
         if id_t == 3:
             self._LPs[not player] -= attacker.get_stat(0)
-            attacker._nb_atk-=1
             if self._LPs[not player] <=0:
                 res = 1
             return res
@@ -112,7 +137,6 @@ class Board:
         if atk > target_stat:
             if target._position == 0:
                 self._LPs[not player] -= (atk - target_stat)
-            attacker._nb_atk-=1
             if self._LPs[not player] <=0:
                 res = 1
             self.combat_destruct(not player, id_t)
@@ -200,7 +224,10 @@ class Board:
             if self._m_zones[player][i] is None:
                 names.append("x")
             else:
-                names.append(self._m_zones[player][i]._card._name)
+                if self._m_zones[player][i]._position == 2:
+                    names.append("[face-down monster]")
+                else:
+                    names.append(self._m_zones[player][i]._card._name)
         print("cemetary:"+str(len(self._cemetaries[0]))+ "               "+names[0]+"        "+names[1]+"        "+names[2])
 
     def display(self, player):

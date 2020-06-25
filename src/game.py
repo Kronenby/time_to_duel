@@ -63,6 +63,18 @@ def handle_input(choice, actions, board, current_player):
             if board.nsummon(current_player,int(pick)-1):
                 break
         return 1
+    if choice == "s":
+        while True:
+            board.display_hand(current_player)
+            pick = input("which card to set face-down? (enter a number or r to return to main phase)\n")
+            if pick=="r":
+                break
+            if not pick.isnumeric():
+                print("don't enter letters beside r")
+                continue
+            if board.setdown(current_player,int(pick)-1):
+                break
+        return 1
     if choice == "c":
         while True:
             board.display_switchable(current_player)
@@ -109,6 +121,9 @@ def handle_input(choice, actions, board, current_player):
                 ### BATTLE STEP
 
                 ### DAMAGE STEP
+                if board.init_damage_step(current_player,target-1):
+                    board.display(current_player)
+                    input("face-down monster got flipped! press any input to continue")
                 done = True
 
                 ### DAMAGE CALCULATION

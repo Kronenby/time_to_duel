@@ -18,3 +18,7 @@ current features (25/06/2020):
     - battle step, and damage step not implemented yet (gotta check what they do first because I have no clue)
     - effects not implemented.
     - cards only have a name, an attack stat and a defense stat 
+
+    added on 25/06/2020 on second commit:
+    - monster summonable in attack position and settable in face-down defense position
+    - flip summon when switch from face-down to attack and when attacked in face-down position 
