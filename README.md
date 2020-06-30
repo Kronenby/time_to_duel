@@ -22,3 +22,6 @@ current features (25/06/2020):
     added on 25/06/2020 on second commit:
     - monster summonable in attack position and settable in face-down defense position
     - flip summon when switch from face-down to attack and when attacked in face-down position 
+
+added on 30/06/2020:
+    - architecture cleaner. The game has been separated from the display and the player, that could allow an eventual implementation of a graphic interface, or an IA for the player.

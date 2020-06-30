@@ -5,6 +5,11 @@ import player
 class Board:
     _blue = 0
     _red = 1
+    _DRAW = "DRAW"
+    _STANBY = "STANDBY"
+    _MAIN = "MAIN"
+    _BATTLE = "BATTLE"
+    _END = "END"
 
     def __init__(self,_b_player,_r_player):
         self._decks = [sample(_b_player._deck,len(_b_player._deck)) , sample(_r_player._deck,len(_r_player._deck))]
@@ -14,12 +19,17 @@ class Board:
         self._n_monsters = [0,0]
         self._cemetaries = [[],[]]
         self._hands = [[],[]]
+        self._current_phase = self._DRAW
+        self.draw_card(self._blue,4)
+        self.draw_card(self._red,4)
+        self._nextphase = self._STANBY
+        self._turn_nb = 0
 
     def color(self,player):
-        if player == 0:
-            return "blue"
+        if player == self._blue:
+            return self._players[0]._name
         else : 
-            return "red"
+            return self._players[1]._name
 
     def combat_destruct(self, player, id):
         card = (self._m_zones[player].pop(id))._card
@@ -36,10 +46,38 @@ class Board:
         return 1
 
     def init_main(self,player):
-        self._players[player].normal_summons +=1
+        self._players[player]._normal_summons +=1
         for monster in self._m_zones[player]:
             if monster is not None:
                 monster._switchable = True
+
+    def get_actions(self,player):
+        actions = ["g" , "e"]
+        if self._current_phase == self._MAIN:
+            if self._turn_nb != 1:
+                actions.append("b")
+            if self._n_monsters[player] !=3 and self._players[player]._normal_summons != 0 and len(self._hands[player]) > 0 :
+                n = []
+                s = []
+                for i in range(len(self._hands[player])):
+                    n.append("n "+str(i+1))
+                    s.append("s "+str(i+1))
+                actions = actions + n + s
+            for i in range(len(self._m_zones[player])):
+                if self._m_zones[player][i] is not None and self._m_zones[player][i]._switchable:
+                    actions.append("c "+str(i+1))   
+        if self._current_phase == self._BATTLE:
+            for i in range(len(self._m_zones[player])):
+                monsteri = self._m_zones[player][i]
+                if monsteri is not None and monsteri._nb_atk > 0 and monsteri._position == 0:
+                    cpt = 0
+                    for j in range(len(self._m_zones[not player])):
+                        if self._m_zones[not player][j] is not None:
+                            actions.append("a "+ str(i+1) + " " + str(j+1))
+                            cpt+=1
+                    if cpt == 0:
+                        actions.append("a "+ str(i+1) + " " +str(len(self._m_zones[not player])))
+        return actions
 
     def main_actions(self, player, n):
         actions = ["give up","battle phase","end phase", "display", "view"]
@@ -59,7 +97,7 @@ class Board:
                 if self._m_zones[player][i] is None:
                     self._m_zones[player].pop(i)
                     self._m_zones[player].insert(i,mon)
-                    self._players[player].normal_summons-=1
+                    self._players[player]._normal_summons-=1
                     self._n_monsters[player] += 1 
                     break
             return 1
@@ -73,7 +111,7 @@ class Board:
                 if self._m_zones[player][i] is None:
                     self._m_zones[player].pop(i)
                     self._m_zones[player].insert(i,mon)
-                    self._players[player].normal_summons-=1
+                    self._players[player]._normal_summons-=1
                     self._n_monsters[player] += 1
                     break
             return 1
@@ -174,119 +212,4 @@ class Board:
             return 1
         print("invalid choice, number not in your hand")
         return 0 
-
-    def display_hand(self, player):
-        i=0
-        for card in self._hands[player]:
-            i+=1
-            print(str(i)+":", end='')
-            card.print_details()
-        return i
-
-    def display_switchable(self,player):
-        i=0
-        for monster in self._m_zones[player]:
-            i+=1
-            if monster is not None and monster._switchable:
-                print(str(i)+":",end= '')
-                monster.print_details()
-
-    def display_cemetary(self,player,which):
-        pick = (player and which) or (not player and not which)
-        i = 0
-        for card in self._cemetaries[pick]:
-            i+=1
-            print(str(i)+":",end='')
-            card.print_details()
-        return i
-
-    def display_field(self,player,which):
-        pick = player and which or (not player and not which)
-        print("spell and trap zone:\n1: Empty\n2:Empty\n3:Empty")
-        print("monster zone:")
-        i=0
-        for monster in self._m_zones[pick]:
-            i+=1
-            print(str(i)+":",end='')
-            if monster is not None:
-                monster.print_details()
-            else:
-                print("Empty")
-
-    def display_attackers(self,player):
-        i = 0
-        for monster in self._m_zones[player]:
-            i+=1
-            if monster is not None and monster._nb_atk > 0 and monster._position==0:
-                print(str(i)+":",end='')
-                monster.print_details()
-
-    def display_targets(self, player):
-        i = 0
-        cpt = 0
-        for monster in self._m_zones[not player]:
-            i+=1
-            if monster is not None:
-                cpt+=1
-                print(str(i)+":",end='')
-                monster.print_details()
-        if (cpt==0):
-            print("4: direct attack")
-
-    def print_deckline(self, player):
-        print("deck:"+str(len(self._decks[player]))+"                  x        x        x")
-
-    def print_cemline(self, player):
-        names = []
-        for i in range(len(self._m_zones[player])):
-            monster = self._m_zones[player][i]
-            if monster is None:
-                names.append("x")
-            else:
-                if monster._position == 2:
-                    names.append("[face-down monster]")
-                else:
-                    names.append(monster._card._name+"("+monster.get_position(monster._position)+")")
-        print("cemetary:"+str(len(self._cemetaries[0]))+ "               "+names[0]+"        "+names[1]+"        "+names[2])
-
-    def display(self, player):
-        p2 = not player
-        print(self.color(p2)+":   "+str(self._LPs[p2])+ "LP   "+str(len(self._hands[p2]))+" cards in hand")
-        print(" ")
-        self.print_deckline(p2)
-        print(" ")
-        self.print_cemline(p2)
-        print(" ")
-        print(" ")
-        self.print_cemline(player)
-        print(" ")
-        self.print_deckline(player)
-        print(" ")
-        print(self.color(player)+":   "+str(self._LPs[player])+"LP")
-        for card in self._hands[player]:
-            print(card._name+"     ", end='')
-        print(" ")
-
-        
-
-    def display_all(self):
-        print("current game:")
-        print("blue lp :" + str(self._LPs[0]) + "  red lp:" +str(self._LPs[1]))
-        print(" ")
-        for p in range(2):
-            print(self.color(p)+" hand:")
-            self.display_hand(p)
-            print(" ")
-            print(self.color(p)+" deck:")
-            for card in self._decks[p]:
-                print(card._name + ", " ,end='')
-            print("\n")
-            print(self.color(p)+" cemetary:")
-            self.display_cemetary(p,1)
-            print(" ")
-            print(self.color(p)+" field:")
-            self.display_field(p,1)
-            print("\n")
-        
-        print("end of display.")
 
